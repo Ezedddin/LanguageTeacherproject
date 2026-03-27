@@ -1,0 +1,37 @@
+[
+  {
+    "id": "kb-a1-intro",
+    "topic": "self-introduction",
+    "level": "A1",
+    "content": "Use short present simple sentences: My name is..., I am from..., I live in....",
+    "exercise": "Introduce yourself in 4 short sentences."
+  },
+  {
+    "id": "kb-a2-past-tense",
+    "topic": "past tense basics",
+    "level": "A2",
+    "content": "For regular verbs, use -ed in simple past. Keep time markers clear (yesterday, last week).",
+    "exercise": "Write 6 sentences about yesterday using simple past."
+  },
+  {
+    "id": "kb-a2-connectors",
+    "topic": "sentence connectors",
+    "level": "A2",
+    "content": "Use connectors such as and, but, because, then, after that to combine short ideas.",
+    "exercise": "Combine 8 short ideas into 4 connected sentences."
+  },
+  {
+    "id": "kb-b1-opinion",
+    "topic": "giving opinions",
+    "level": "B1",
+    "content": "Use opinion frames: I think..., In my view..., The reason is.... Add one example.",
+    "exercise": "Give your opinion on one topic in 6-8 lines."
+  },
+  {
+    "id": "kb-b2-argument",
+    "topic": "structured argument",
+    "level": "B2",
+    "content": "Build arguments with claim, support, and contrast while keeping cohesive flow.",
+    "exercise": "Write a short argument with one counterpoint and conclusion."
+  }
+]

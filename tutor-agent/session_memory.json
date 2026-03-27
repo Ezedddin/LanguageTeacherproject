@@ -1,0 +1,23 @@
+{
+  "demo-user:session-1": {
+    "user_id": "demo-user",
+    "session_id": "session-1",
+    "recent_topics": [
+      "Past Tense Usage"
+    ],
+    "known_weak_areas": [
+      "sentence complexity",
+      "use of prepositions",
+      "verb tense consistency"
+    ],
+    "known_strong_areas": [
+      "basic personal information",
+      "simple past tense",
+      "simple present tense"
+    ],
+    "last_difficulty": "same",
+    "progress_notes": [
+      "Learner wants to practice past tense, focusing on regular verbs."
+    ]
+  }
+}
