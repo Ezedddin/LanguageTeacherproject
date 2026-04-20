@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pydantic
+google-genai
+openai
+langgraph
+langchain-core
+pyttsx3

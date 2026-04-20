@@ -1,3 +1,6 @@
 .env
 __pycache__/
 *.pyc
+tutor-agent/session_memory.json
+webapp/frontend/node_modules/
+webapp/frontend/dist/

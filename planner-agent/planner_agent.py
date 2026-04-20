@@ -27,15 +27,15 @@ from assessment_agent import AssessmentResult  # jouw Bot 1 output
 # --- Output model voor Bot 2 ---
 
 class WeeklyGoal(BaseModel):
-    week: int = Field(ge=1, le=4)
+    week: int = Field(ge=1, le=12)
     focus: str
     exercises: list[str] = Field(min_length=2, max_length=3)
 
 class LearningPlan(BaseModel):
     level: Literal["A1", "A2", "B1", "B2"]
     target_level: Literal["A1", "A2", "B1", "B2"]
-    duration_weeks: int = Field(ge=4, le=4)
-    weekly_goals: list[WeeklyGoal] = Field(min_length=4, max_length=4)
+    duration_weeks: int = Field(ge=12, le=12)
+    weekly_goals: list[WeeklyGoal] = Field(min_length=12, max_length=12)
     priority_skills: list[str]
     summary: str
 
@@ -46,8 +46,8 @@ class LearningPlan(BaseModel):
             raise ValueError("target_level must be >= level")
 
         week_numbers = sorted(goal.week for goal in self.weekly_goals)
-        if week_numbers != [1, 2, 3, 4]:
-            raise ValueError("weekly_goals must contain week numbers 1..4 exactly once")
+        if week_numbers != list(range(1, 13)):
+            raise ValueError("weekly_goals must contain week numbers 1..12 exactly once")
 
         return self
 
@@ -98,11 +98,11 @@ Assessment summary:
 - Grammar score: {assessment.grammar_score}/5
 - Fluency score: {assessment.fluency_score}/5
 
-Create a personalized learning plan for exactly 4 weeks that targets the weak areas.
+Create a personalized learning plan for exactly 12 weeks (3 months) that targets the weak areas.
 Return strict JSON matching the schema with:
-- duration_weeks = 4
-- weekly_goals has exactly 4 items
-- week values exactly 1,2,3,4
+- duration_weeks = 12
+- weekly_goals has exactly 12 items
+- week values exactly 1..12
 - each week has 2-3 concrete exercises
 - target_level must be equal or higher than current level
 """.strip()

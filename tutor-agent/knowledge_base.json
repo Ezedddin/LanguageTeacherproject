@@ -3,35 +3,126 @@
     "id": "kb-a1-intro",
     "topic": "self-introduction",
     "level": "A1",
-    "content": "Use short present simple sentences: My name is..., I am from..., I live in....",
-    "exercise": "Introduce yourself in 4 short sentences."
+    "content": "Use short present simple sentences: My name is..., I am from..., I live in.... Keep sentences to 5–8 words.",
+    "exercise": "Introduce yourself in 4 short sentences (name, age, country, hobby)."
+  },
+  {
+    "id": "kb-a1-numbers",
+    "topic": "numbers and dates",
+    "level": "A1",
+    "content": "Practise cardinal numbers (1–100), ordinal numbers (first, second), and date formats: the 5th of June / June 5th.",
+    "exercise": "Write your birthday, 3 important dates in your life, and count to 20 in sentences."
+  },
+  {
+    "id": "kb-a1-daily",
+    "topic": "daily routine",
+    "level": "A1",
+    "content": "Use present simple for habits. Add time expressions: in the morning, at noon, at night. Verbs: wake up, eat, go, come home.",
+    "exercise": "Describe your daily routine in 5 sentences using time expressions."
   },
   {
     "id": "kb-a2-past-tense",
     "topic": "past tense basics",
     "level": "A2",
-    "content": "For regular verbs, use -ed in simple past. Keep time markers clear (yesterday, last week).",
-    "exercise": "Write 6 sentences about yesterday using simple past."
+    "content": "For regular verbs, add -ed in simple past. Many common verbs are irregular (go→went, eat→ate). Use time markers: yesterday, last week, in 2020.",
+    "exercise": "Write 6 sentences about what you did yesterday, using both regular and irregular verbs."
   },
   {
     "id": "kb-a2-connectors",
     "topic": "sentence connectors",
     "level": "A2",
-    "content": "Use connectors such as and, but, because, then, after that to combine short ideas.",
-    "exercise": "Combine 8 short ideas into 4 connected sentences."
+    "content": "Use connectors to join ideas: and (addition), but (contrast), because (reason), so (result), then / after that (sequence).",
+    "exercise": "Combine 8 short ideas into 4 longer connected sentences using different connectors."
+  },
+  {
+    "id": "kb-a2-questions",
+    "topic": "asking questions",
+    "level": "A2",
+    "content": "Form questions with do/does (present), did (past), and wh-words (what, where, when, why, who, how). Watch subject-verb inversion.",
+    "exercise": "Write 8 questions you would ask a new classmate — use at least 4 different wh-words."
+  },
+  {
+    "id": "kb-a2-future",
+    "topic": "talking about the future",
+    "level": "A2",
+    "content": "Use 'going to' for plans and intentions. Use 'will' for spontaneous decisions and predictions. Don't mix them randomly.",
+    "exercise": "Write 3 sentences with 'going to' (your plans) and 3 sentences with 'will' (predictions about the world)."
   },
   {
     "id": "kb-b1-opinion",
     "topic": "giving opinions",
     "level": "B1",
-    "content": "Use opinion frames: I think..., In my view..., The reason is.... Add one example.",
-    "exercise": "Give your opinion on one topic in 6-8 lines."
+    "content": "Use opinion frames: I think..., In my opinion..., As far as I'm concerned.... Support each opinion with one reason or example.",
+    "exercise": "Write your opinion on social media (6–8 sentences). Use at least 3 different opinion frames."
+  },
+  {
+    "id": "kb-b1-compare",
+    "topic": "comparing and contrasting",
+    "level": "B1",
+    "content": "Use comparatives (more/less + adj, -er), superlatives (most/least, -est), and contrast phrases: while, whereas, on the other hand.",
+    "exercise": "Compare city life and rural life in 8 sentences. Use at least two contrast phrases."
+  },
+  {
+    "id": "kb-b1-narrative",
+    "topic": "narrative writing",
+    "level": "B1",
+    "content": "Set the scene in the opening (time, place, character). Use past simple for main events, past continuous for background. Include one turning point.",
+    "exercise": "Write a short story (10–12 sentences) about an unexpected event. Include background, a turning point, and a resolution."
+  },
+  {
+    "id": "kb-b1-modal",
+    "topic": "modal verbs",
+    "level": "B1",
+    "content": "Use modals for ability (can/could), obligation (must/have to/should), possibility (might/may), and advice (should/ought to). Each modal changes the strength of the meaning.",
+    "exercise": "Write 8 sentences about rules, advice, or possibilities in your daily life using 4 different modal verbs."
   },
   {
     "id": "kb-b2-argument",
     "topic": "structured argument",
     "level": "B2",
-    "content": "Build arguments with claim, support, and contrast while keeping cohesive flow.",
-    "exercise": "Write a short argument with one counterpoint and conclusion."
+    "content": "Build arguments with a clear claim, supporting evidence, and a counterargument followed by a rebuttal. Use cohesive devices: furthermore, however, nevertheless, as a result.",
+    "exercise": "Write a structured argument (12–15 sentences) for or against remote work. Include one counterpoint and a conclusion."
+  },
+  {
+    "id": "kb-b2-passive",
+    "topic": "passive voice",
+    "level": "B2",
+    "content": "Use the passive when the agent is unknown, unimportant, or obvious. Form: be + past participle. Avoid overuse — prefer active when the agent matters.",
+    "exercise": "Rewrite 5 active sentences as passive. Then write 3 original passive sentences on a topic of your choice."
+  },
+  {
+    "id": "kb-b2-conditionals",
+    "topic": "conditionals",
+    "level": "B2",
+    "content": "Zero conditional (facts), first conditional (real future), second conditional (hypothetical present), third conditional (past hypothetical). Each uses a specific tense combination.",
+    "exercise": "Write one sentence for each of the four conditional types. Then write a short paragraph (5–6 sentences) using at least two types naturally."
+  },
+  {
+    "id": "kb-b2-cohesion",
+    "topic": "cohesion and coherence",
+    "level": "B2",
+    "content": "Use reference words (it, they, this, the former), lexical chains (synonyms, related words), and discourse markers (in contrast, consequently, to summarise) to create flow.",
+    "exercise": "Write a paragraph of 8 sentences on climate change. Underline or label each cohesive device you use."
+  },
+  {
+    "id": "kb-c1-academic",
+    "topic": "academic writing style",
+    "level": "C1",
+    "content": "Use nominalisations (investigate→investigation), hedging language (it appears that, it could be argued), and impersonal constructions. Avoid contractions and informal vocabulary.",
+    "exercise": "Rewrite 5 informal sentences in formal academic style. Then write a short abstract (80–100 words) for an imaginary study."
+  },
+  {
+    "id": "kb-c1-nuance",
+    "topic": "nuance and stance",
+    "level": "C1",
+    "content": "Express stance and nuance with adverbs (arguably, remarkably, inevitably), concession structures (while it is true that... it is also the case that...), and attitude markers.",
+    "exercise": "Write a nuanced opinion piece (150 words) on a controversial topic. Use at least 3 stance adverbs and one concession structure."
+  },
+  {
+    "id": "kb-c1-register",
+    "topic": "register and tone",
+    "level": "C1",
+    "content": "Match vocabulary and syntax to audience: formal (Latinate vocabulary, complex sentences), neutral, or informal (Anglo-Saxon words, contractions, ellipsis). Avoid mixing registers.",
+    "exercise": "Write the same message (asking for a deadline extension) in three registers: to a close friend, to a teacher, and to a senior manager."
   }
 ]

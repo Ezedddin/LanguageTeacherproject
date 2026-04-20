@@ -42,7 +42,7 @@ MEMORY_PATH = Path(__file__).resolve().parent / "session_memory.json"
 class KnowledgeItem(BaseModel):
     id: str
     topic: str
-    level: Literal["A1", "A2", "B1", "B2"]
+    level: Literal["A1", "A2", "B1", "B2", "C1"]
     content: str
     exercise: str
 
@@ -57,6 +57,61 @@ class SessionMemory(BaseModel):
     progress_notes: list[str] = Field(default_factory=list)
 
 
+class VocabItem(BaseModel):
+    term: str
+    meaning: str
+    example_sentence: str
+
+
+class GuidedTask(BaseModel):
+    prompt: str
+    sentence_with_blank: str
+    expected_answer: str
+    hint: str
+
+
+class LessonBlock(BaseModel):
+    phase: Literal[
+        "warm_up",
+        "input",
+        "guided_practice",
+        "output_speaking",
+        "feedback_correction",
+    ] = Field(description="Fixed lesson phase identifier.")
+    duration_minutes: int = Field(
+        ge=5,
+        le=20,
+        description="Approximate duration for this phase in minutes.",
+    )
+    goal: str = Field(description="Main objective of the phase.")
+    teacher_actions: list[str] = Field(
+        min_length=1,
+        max_length=3,
+        description="Concrete tutor actions in this phase.",
+    )
+    learner_actions: list[str] = Field(
+        min_length=1,
+        max_length=3,
+        description="Concrete learner actions in this phase.",
+    )
+    vocab_selection: list[VocabItem] = Field(
+        default_factory=list,
+        description="Use mainly in input phase: 5-8 vocab terms with meaning and example.",
+    )
+    guided_tasks: list[GuidedTask] = Field(
+        default_factory=list,
+        description="Use mainly in guided_practice phase: structured fill-in tasks.",
+    )
+    scenario_prompt: str = Field(
+        default="",
+        description="Use mainly in output_speaking phase: realistic production scenario prompt.",
+    )
+    expert_tip: str = Field(
+        default="",
+        description="Short contextual tip for this phase.",
+    )
+
+
 class TutorOutput(BaseModel):
     tutor_message: str = Field(
         description="What the tutor says to the learner right now."
@@ -67,6 +122,11 @@ class TutorOutput(BaseModel):
     focus_topic: str = Field(description="Main topic this turn focuses on.")
     difficulty_adjustment: Literal["easier", "same", "harder"] = Field(
         description="How next step should adapt difficulty."
+    )
+    lesson_outline: list[LessonBlock] = Field(
+        min_length=5,
+        max_length=5,
+        description="Five-phase lesson plan for this session.",
     )
     memory_note: str = Field(
         description="Short note to store in session memory for next turn."
@@ -224,6 +284,18 @@ Rules:
 - Keep tutor_message concise (3-6 lines).
 - Suggested exercise must be concrete and aligned with weak areas.
 - difficulty_adjustment must be one of: easier, same, harder.
+- lesson_outline must contain exactly 5 blocks in this order:
+  1) warm_up (5-10 min): active recall only, ask simple questions about previous material, no explanations.
+  2) input (10-15 min): introduce exactly one new concept (vocabulary OR grammar), in context with examples.
+  3) guided_practice (10-15 min): controlled practice (fill-ins, sentence completion, short translations) with direct correction.
+  4) output_speaking (15-20 min): real production (role-play/conversation/storytelling); learner should speak most of the time.
+  5) feedback_correction (5-10 min): correct only high-impact errors, reinforce correct forms.
+- For input phase, avoid overload: prefer 5-8 words and one grammar rule maximum.
+- For input phase, populate vocab_selection with 5-8 items (term, meaning, example_sentence).
+- For guided_practice phase, populate guided_tasks with exactly 3 concrete tasks.
+- For output_speaking phase, provide scenario_prompt and a practical expert_tip.
+- Exception for very first lesson / no prior lesson evidence in memory:
+  warm_up should be a low-pressure onboarding check-in (simple intro lines), not recall of previous content.
 - memory_note should be one short sentence for next turn.
 """.strip()
 
@@ -345,18 +417,32 @@ if __name__ == "__main__":
         strong_areas=["basic self-introduction", "daily routine vocabulary"],
         recommended_focus="Practice past tense and linking words in short narratives.",
     )
+    demo_weekly_goals = []
+    for week in range(1, 13):
+        if week <= 4:
+            focus = f"Past tense foundation (week {week})"
+        elif week <= 8:
+            focus = f"Sentence connectors in context (week {week})"
+        else:
+            focus = f"Speaking fluency and review (week {week})"
+        demo_weekly_goals.append(
+            {
+                "week": week,
+                "focus": focus,
+                "exercises": [
+                    "Write 5 short sentences",
+                    "Read and repeat a short dialogue",
+                ],
+            }
+        )
+
     plan = LearningPlan(
         level="A2",
         target_level="B1",
-        duration_weeks=4,
-        weekly_goals=[
-            {"week": 1, "focus": "Past tense basics", "exercises": ["Write 5 past-tense sentences", "Read and repeat short story"]},
-            {"week": 2, "focus": "Connectors", "exercises": ["Use because/then/after in diary", "Combine short sentences"]},
-            {"week": 3, "focus": "Speaking fluency", "exercises": ["1-minute daily recap", "Shadowing practice"]},
-            {"week": 4, "focus": "Mixed review", "exercises": ["Describe yesterday in 8 lines", "Self-correction checklist"]},
-        ],
+        duration_weeks=12,
+        weekly_goals=demo_weekly_goals,
         priority_skills=["grammar", "fluency"],
-        summary="Build control of past tense and improve sentence flow.",
+        summary="Build control of tense and improve sentence flow over 12 weeks.",
     )
 
     agent = TutorAgent()

@@ -3,21 +3,49 @@
     "user_id": "demo-user",
     "session_id": "session-1",
     "recent_topics": [
-      "Past Tense Usage"
+      "Self-introduction",
+      "Sentence connectors",
+      "Daily Routine Vocabulary and Sentence Structure",
+      "Daily Routine Vocabulary and Sentence Structure",
+      "Daily Routine Vocabulary and Sentence Structure",
+      "Everyday Objects Vocabulary"
     ],
     "known_weak_areas": [
+      "articles",
+      "basic sentence structure",
+      "basic vocabulary",
+      "comprehension",
+      "grammatical accuracy",
+      "grammatical complexity",
+      "prepositions",
       "sentence complexity",
-      "use of prepositions",
-      "verb tense consistency"
+      "sentence construction",
+      "sentence expansion"
     ],
     "known_strong_areas": [
+      "ability to provide input",
+      "ability to provide single-word answers",
+      "ability to respond with short phrases",
+      "ability to state name",
+      "ability to state name and origin",
+      "ability to state origin",
+      "basic introductions",
       "basic personal information",
-      "simple past tense",
-      "simple present tense"
+      "basic sentence formation",
+      "expressing likes"
     ],
     "last_difficulty": "same",
     "progress_notes": [
-      "Learner wants to practice past tense, focusing on regular verbs."
+      "Learner practiced past tense with regular verbs and prepositions.",
+      "Learner practiced past tense with locations and needs to focus on spelling and verb conjugation.",
+      "Learner needs practice with spelling and basic sentence structure for self-introduction.",
+      "Learner needs practice with basic sentence structure for self-introduction in French.",
+      "Learner needs practice with spelling and basic sentence structure for self-introduction.",
+      "Learner practiced using sentence connectors in speaking and writing.",
+      "Learner practiced daily routine vocabulary and sentence construction in speaking.",
+      "Learner practiced daily routine vocabulary and sentence construction in speaking.",
+      "Learner practiced daily routine vocabulary and sentence structure in speaking, with a focus on present simple and time expressions.",
+      "Learner practiced vocabulary for common objects and simple sentence construction."
     ]
   }
 }
