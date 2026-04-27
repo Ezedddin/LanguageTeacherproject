@@ -3,9 +3,11 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue"
 import {
   completeLessonApi,
   fetchDashboard,
+  guestLogin,
   runPipeline,
   startLesson,
   submitLessonPhase,
+  tutorChat,
 } from "./api";
 
 const apiBase = ref("http://localhost:8000");
@@ -23,6 +25,25 @@ const result = ref(null);
 const dashboardData = ref(null);
 const step = ref(0);
 const currentPath = ref(window.location.pathname || "/");
+const displayName = ref("Learner");
+const userName = ref("");
+const lessonsPerWeek = ref(2);
+const aiFeedbackLoading = ref(false);
+const aiFeedback = ref("");
+const tutorConversation = ref([]);
+const tutorMemory = ref({});
+const reviewSessionOpen = ref(false);
+const activeReviewIndex = ref(0);
+const pipelineLoadingStep = ref(0);
+const sttConfidence = ref(0);
+const notificationsPermission = ref(
+  typeof Notification !== "undefined" ? Notification.permission : "denied",
+);
+const phaseStartTime = ref(Date.now());
+const guidedHintsVisible = ref([]);
+const currentStreak = ref(0);
+const guidedCheckResults = ref([]);
+const guidedCheckLoading = ref([]);
 
 const speakLanguages = [
   { code: "en", label: "English", emoji: "🇬🇧" },
@@ -132,7 +153,7 @@ const uiTextBySpeak = {
     navSignIn: "Sign In",
     navGetStarted: "Get Started",
     heroGetStartedNow: "Get Started Now",
-    appTitle: "Language Teacher",
+    appTitle: "Vlot",
     apiBaseUrl: "API Base URL",
     userId: "User ID",
     sessionId: "Session ID",
@@ -278,7 +299,7 @@ const uiTextBySpeak = {
     navSignIn: "Inloggen",
     navGetStarted: "Start",
     heroGetStartedNow: "Start nu",
-    appTitle: "Taalcoach",
+    appTitle: "Vlot",
     apiBaseUrl: "API Basis-URL",
     userId: "Gebruikers-ID",
     sessionId: "Sessie-ID",
@@ -424,7 +445,7 @@ const uiTextBySpeak = {
     navSignIn: "Iniciar sesión",
     navGetStarted: "Comenzar",
     heroGetStartedNow: "Comenzar ahora",
-    appTitle: "Profesor de idiomas",
+    appTitle: "Vlot",
     apiBaseUrl: "URL base de API",
     userId: "ID de usuario",
     sessionId: "ID de sesión",
@@ -570,7 +591,7 @@ const uiTextBySpeak = {
     navSignIn: "Se connecter",
     navGetStarted: "Commencer",
     heroGetStartedNow: "Commencer maintenant",
-    appTitle: "Professeur de langue",
+    appTitle: "Vlot",
     apiBaseUrl: "URL de base API",
     userId: "ID utilisateur",
     sessionId: "ID session",
@@ -716,7 +737,7 @@ const uiTextBySpeak = {
     navSignIn: "Anmelden",
     navGetStarted: "Loslegen",
     heroGetStartedNow: "Jetzt starten",
-    appTitle: "Sprachlehrer",
+    appTitle: "Vlot",
     apiBaseUrl: "API-Basis-URL",
     userId: "Benutzer-ID",
     sessionId: "Sitzungs-ID",
@@ -862,7 +883,7 @@ const uiTextBySpeak = {
     navSignIn: "Accedi",
     navGetStarted: "Inizia",
     heroGetStartedNow: "Inizia ora",
-    appTitle: "Insegnante di lingue",
+    appTitle: "Vlot",
     apiBaseUrl: "URL base API",
     userId: "ID utente",
     sessionId: "ID sessione",
@@ -1008,7 +1029,7 @@ const uiTextBySpeak = {
     navSignIn: "サインイン",
     navGetStarted: "はじめる",
     heroGetStartedNow: "今すぐ開始",
-    appTitle: "語学教師",
+    appTitle: "Vlot",
     apiBaseUrl: "APIベースURL",
     userId: "ユーザーID",
     sessionId: "セッションID",
@@ -1163,7 +1184,7 @@ const promptTemplatesBySpeak = {
     "最後の質問です。今日したことを{learn}で完全な文で説明してください。",
   ],
 };
-const totalAssessmentSteps = 5;
+const totalAssessmentSteps = 4;
 
 const form = reactive({
   user_id: "demo-user",
@@ -1199,6 +1220,16 @@ const selectedVoiceURI = ref("");
 const ttsLangCodeMap = {
   fr: "fr-FR", nl: "nl-NL", es: "es-ES", de: "de-DE",
   en: "en-US", ja: "ja-JP", hi: "hi-IN",
+};
+const ttsDefaultVoiceHintsByLang = {
+  en: ["siri", "samantha", "allison", "ava", "serena", "aria", "guy", "zira", "david"],
+  nl: ["xander", "femke", "claire", "colette", "maarten", "siri"],
+  es: ["jorge", "monica", "paulina", "elvira", "alvaro", "siri"],
+  fr: ["thomas", "amelie", "denise", "henri", "siri"],
+  de: ["anna", "markus", "katja", "conrad", "siri"],
+  it: ["alice", "luca", "isabella", "diego", "siri"],
+  ja: ["kyoko", "otoya", "nanami", "keita", "siri"],
+  hi: ["swara", "kabir", "madhur", "siri"],
 };
 const ttsLangCode = computed(
   () => ttsLangCodeMap[selectedLearnCode.value] || "en-US",
@@ -1253,7 +1284,7 @@ const assessmentMessages = computed(() => {
     messages.push({
       role: "coach",
       text: assessmentPrompts.value[i],
-      meta: i === step.value - 1 ? "LINGUACOACH AI  -  JUST NOW" : "LINGUACOACH AI",
+      meta: i === step.value - 1 ? "VLOT AI  -  JUST NOW" : "VLOT AI",
     });
     const key = answerKeys[i];
     const answer = key ? form[key].trim() : "";
@@ -1600,9 +1631,19 @@ const starterVocabByLanguage = {
     { term: "अलविदा", meaning: "Goodbye (Alvida)" },
   ],
 };
-const starterVocabForLanguage = computed(
-  () => starterVocabByLanguage[selectedLearnCode.value] || starterVocabByLanguage.fr,
-);
+const starterVocabForLanguage = computed(() => {
+  const learnCode = selectedLearnCode.value;
+  if (learnCode !== "en") {
+    return starterVocabByLanguage[learnCode] || starterVocabByLanguage.fr;
+  }
+  // Learning English: invert native-language vocab so the English word is the term
+  // and the native translation is the meaning.
+  const nativeVocab = starterVocabByLanguage[selectedSpeakCode.value];
+  if (nativeVocab) {
+    return nativeVocab.map((item) => ({ term: item.meaning, meaning: item.term }));
+  }
+  return starterVocabByLanguage.en;
+});
 
 const lessonLibraryVocab = computed(() => {
   const vocab = [];
@@ -1653,10 +1694,30 @@ const warmupQuestions = computed(() => {
       `Pick any word from the word bank above and write one sentence with it — any attempt is great!`,
     ];
   }
+  // Use previous lesson vocab for contextual recall
+  const prevLesson = activeLessonIndex.value > 0
+    ? curriculumLessons.value[activeLessonIndex.value - 1]
+    : null;
+  const prevVocab = prevLesson?.phases
+    ?.find((p) => p.phase === "input")
+    ?.vocab_selection || [];
+  const prevTerm = prevVocab[0]?.term;
+  const prevTerm2 = prevVocab[1]?.term;
+
+  // Supplement with words not yet mastered
+  const unknown = getUnknownVocab();
+  const unknownTerm = unknown.find((w) => !prevVocab.some((v) => v.term === w.term))?.term;
+
   return [
-    `Write one sentence that practices: ${weak[0] || "sentence flow"}.`,
-    `Write one sentence that practices: ${weak[1] || "clear vocabulary use"}.`,
-    "Write one complete sentence about yesterday.",
+    prevTerm
+      ? `Recall from last time: write a sentence using "${prevTerm}".`
+      : `Write one sentence that practises: ${weak[0] || "sentence flow"}.`,
+    prevTerm2
+      ? `Can you also use "${prevTerm2}" in a short sentence?`
+      : `Write one sentence that practises: ${weak[1] || "clear vocabulary use"}.`,
+    unknownTerm
+      ? `You didn't fully learn "${unknownTerm}" last time — try it in a sentence now.`
+      : "Write one complete sentence about what you did yesterday.",
   ];
 });
 const guidedExercisePrompts = computed(() => {
@@ -1727,6 +1788,18 @@ const reviewDueToday = computed(() =>
     ? dashboardData.value.review_due_today
     : [],
 );
+const grammarTipMap = {
+  "sentence flow": "Keep subjects and verbs close together. Use connectors like 'and', 'but', 'because' to build longer ideas.",
+  "vocabulary": "Try to use each new word in at least two different sentences — once to understand it, once to produce it yourself.",
+  "grammar": "Check that verb forms agree with their subject (I go, she goes). One error repeated is easier to fix than many different ones.",
+  "tense": "Choose your tense before you start the sentence. Past = finished. Present = happening now. Future = not yet.",
+  "articles": "Use 'a' for something new or general. Use 'the' when both you and the listener know which one you mean.",
+  "pronunciation": "Slow down slightly and stress the key word in each sentence. Clarity beats speed every time.",
+  "speaking confidence": "Speak at a steady pace. A short pause before answering is normal and sounds more natural than rushing.",
+  "word order": "In most sentences: Subject → Verb → Object. Adverbs usually go before the verb or at the end.",
+  "prepositions": "Learn prepositions in fixed phrases (at the weekend, in the morning, on Monday) — they rarely follow logic.",
+};
+
 const feedbackCorrections = computed(() => {
   const weak = assessmentWeakAreas.value;
   if (!weak.length) {
@@ -1735,14 +1808,22 @@ const feedbackCorrections = computed(() => {
         before: "I speak very fast",
         correction: "I speak very quickly and clearly",
         note: "Add precision markers to improve clarity.",
+        why: grammarTipMap["speaking confidence"],
       },
     ];
   }
-  return weak.slice(0, 2).map((topic) => ({
-    before: `Inconsistent use around "${topic}"`,
-    correction: `Use a corrected form consistently for "${topic}"`,
-    note: "Practice this structure 3 times aloud.",
-  }));
+  return weak.slice(0, 2).map((topic) => {
+    const lowerTopic = topic.toLowerCase();
+    const why =
+      Object.entries(grammarTipMap).find(([key]) => lowerTopic.includes(key))?.[1] ||
+      `Practise "${topic}" consistently — use it in three different sentences each day.`;
+    return {
+      before: `Inconsistent use around "${topic}"`,
+      correction: `Apply a corrected form consistently for "${topic}"`,
+      note: "Repeat corrected examples 3 times aloud.",
+      why,
+    };
+  });
 });
 
 const curriculumLessons = computed(() => {
@@ -1910,6 +1991,179 @@ function normalizeRoute() {
   }
 }
 
+function saveSession() {
+  try {
+    localStorage.setItem("vlot_user_id", form.user_id);
+    localStorage.setItem("vlot_session_id", form.session_id);
+    localStorage.setItem("vlot_display_name", displayName.value);
+    localStorage.setItem("vlot_speak_code", selectedSpeakCode.value);
+    localStorage.setItem("vlot_learn_code", selectedLearnCode.value);
+  } catch {}
+}
+
+function loadSession() {
+  try {
+    const userId = localStorage.getItem("vlot_user_id");
+    const sessionId = localStorage.getItem("vlot_session_id");
+    const name = localStorage.getItem("vlot_display_name");
+    const speakCode = localStorage.getItem("vlot_speak_code");
+    const learnCode = localStorage.getItem("vlot_learn_code");
+    if (userId) form.user_id = userId;
+    if (sessionId) form.session_id = sessionId;
+    if (name) displayName.value = name;
+    if (speakCode && speakLanguages.some((l) => l.code === speakCode)) selectedSpeakCode.value = speakCode;
+    if (learnCode && learnLanguages.some((l) => l.code === learnCode)) selectedLearnCode.value = learnCode;
+  } catch {}
+}
+
+function clearSession() {
+  try {
+    [
+      "vlot_user_id", "vlot_session_id", "vlot_display_name",
+      "vlot_speak_code", "vlot_learn_code", "vlot_zero_start",
+      "vlot_unknown_vocab", "vlot_streak",
+    ].forEach((k) => localStorage.removeItem(k));
+  } catch {}
+}
+
+// ── Vocabulary spaced repetition ──────────────────────────────────────────
+function getUnknownVocab() {
+  try {
+    return JSON.parse(localStorage.getItem("vlot_unknown_vocab") || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveUnknownVocab(items) {
+  try {
+    const existing = getUnknownVocab();
+    const newTerms = items.map((i) => ({ term: i.term, meaning: i.meaning }));
+    const merged = [
+      ...existing.filter((e) => !newTerms.some((n) => n.term === e.term)),
+      ...newTerms,
+    ];
+    localStorage.setItem("vlot_unknown_vocab", JSON.stringify(merged.slice(-30)));
+  } catch {}
+}
+
+function removeLearnedVocab(learnedTerms) {
+  try {
+    const existing = getUnknownVocab();
+    localStorage.setItem(
+      "vlot_unknown_vocab",
+      JSON.stringify(existing.filter((e) => !learnedTerms.includes(e.term))),
+    );
+  } catch {}
+}
+
+// ── Browser notifications ─────────────────────────────────────────────────
+async function requestNotificationPermission() {
+  if (!("Notification" in window)) return;
+  const result = await Notification.requestPermission();
+  notificationsPermission.value = result;
+  if (result === "granted") {
+    localStorage.setItem("vlot_last_practice", Date.now().toString());
+  }
+}
+
+function updateLastPractice() {
+  try {
+    const now = Date.now();
+    const last = parseInt(localStorage.getItem("vlot_last_practice") || "0", 10);
+    const lastDate = last ? new Date(last).toDateString() : null;
+    const today = new Date(now).toDateString();
+    const yesterday = new Date(now - 86_400_000).toDateString();
+    let streak = parseInt(localStorage.getItem("vlot_streak") || "0", 10);
+    if (lastDate === today) {
+      // already practiced today — keep streak
+    } else if (lastDate === yesterday) {
+      streak += 1;
+    } else {
+      streak = 1;
+    }
+    localStorage.setItem("vlot_last_practice", now.toString());
+    localStorage.setItem("vlot_streak", streak.toString());
+    currentStreak.value = streak;
+  } catch {}
+}
+
+function loadStreak() {
+  try {
+    currentStreak.value = parseInt(localStorage.getItem("vlot_streak") || "0", 10);
+  } catch {}
+}
+
+function checkPracticeReminder() {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  try {
+    const last = parseInt(localStorage.getItem("vlot_last_practice") || "0", 10);
+    if (!last) return;
+    const hoursSince = (Date.now() - last) / 3_600_000;
+    if (hoursSince >= 24) {
+      new Notification("Vlot — Time to practise! 🎓", {
+        body: `It's been ${Math.round(hoursSince)} hours since your last session. Keep your streak alive!`,
+      });
+      updateLastPractice();
+    }
+  } catch {}
+}
+
+// ── Pipeline loading steps ────────────────────────────────────────────────
+const pipelineLoadingSteps = [
+  "Analysing your answers…",
+  "Detecting your language level…",
+  "Building your personalised plan…",
+  "Designing your lessons…",
+  "Almost ready…",
+];
+
+async function fetchAiSpeakingFeedback() {
+  const answer = lessonResponses.output_speaking.trim();
+  if (!answer || answer.length < 10 || isZeroStartMode.value) return;
+  aiFeedbackLoading.value = true;
+  try {
+    const resp = await tutorChat(apiBase.value, {
+      user_id: form.user_id,
+      session_id: form.session_id,
+      user_message: `Give me brief, encouraging feedback (2-3 sentences) on this ${currentLearningLanguage.value} answer: "${answer}"`,
+      lesson_id: String(activeLesson.value?.lesson_id || activeLesson.value?.id || ""),
+      conversation: tutorConversation.value,
+      memory: tutorMemory.value,
+      exercise_history: [],
+    });
+    aiFeedback.value = String(resp.message || "");
+    if (Array.isArray(resp.conversation)) tutorConversation.value = resp.conversation;
+    if (resp.memory && typeof resp.memory === "object") tutorMemory.value = resp.memory;
+  } catch {
+    // silently fail — local feedback remains visible
+  } finally {
+    aiFeedbackLoading.value = false;
+  }
+}
+
+async function checkGuidedAnswer(idx) {
+  const task = guidedExercisePrompts.value[idx];
+  const answer = (lessonResponses.guided_practice[idx] || "").trim();
+  if (!answer) return;
+  guidedCheckLoading.value[idx] = true;
+  try {
+    const resp = await tutorChat(apiBase.value, {
+      user_id: form.user_id || "guest",
+      session_id: form.session_id || "local",
+      user_message: `Exercise: "${task.prompt}". My answer: "${answer}". Is this correct ${currentLearningLanguage.value}? Give exactly 1 sentence of feedback in English.`,
+      conversation: [],
+      memory: tutorMemory.value,
+      exercise_history: [],
+    });
+    guidedCheckResults.value[idx] = String(resp.message || resp.tutor_message || "Looks good — keep going!");
+  } catch {
+    guidedCheckResults.value[idx] = "Could not check right now — continue and review later.";
+  } finally {
+    guidedCheckLoading.value[idx] = false;
+  }
+}
+
 async function loadDashboardFromApi() {
   if (!form.user_id || !form.session_id) return;
   try {
@@ -1971,11 +2225,20 @@ function resetFlow() {
   step.value = 0;
   error.value = "";
   result.value = null;
+  dashboardData.value = null;
   isZeroStartMode.value = false;
+  displayName.value = "Learner";
+  userName.value = "";
+  aiFeedback.value = "";
+  tutorConversation.value = [];
+  tutorMemory.value = {};
+  form.user_id = "demo-user";
+  form.session_id = "session-1";
   form.answer1 = "";
   form.answer2 = "";
   form.answer3 = "";
   form.answer4 = "";
+  clearSession();
   navigateTo("/");
 }
 
@@ -2051,12 +2314,22 @@ function buildZeroStartResult() {
 const isZeroStartMode = ref(false);
 
 function startFromZero() {
-  result.value = buildZeroStartResult();
+  const zeroResult = buildZeroStartResult();
+  result.value = zeroResult;
+  if (userName.value.trim()) displayName.value = userName.value.trim();
   completedWeekNumbers.value = [];
   step.value = 5;
   isZeroStartMode.value = true;
   dashboardData.value = null;
   onboardingChoiceModalOpen.value = false;
+  try {
+    localStorage.setItem("vlot_zero_start", JSON.stringify({
+      result: zeroResult,
+      displayName: displayName.value,
+      speakCode: selectedSpeakCode.value,
+      learnCode: selectedLearnCode.value,
+    }));
+  } catch {}
   navigateTo("/dashboard");
 }
 
@@ -2072,14 +2345,17 @@ function resetLessonInputs() {
   outputUsedSpeech.value = false;
   outputFollowUpUsedSpeech.value = false;
   phaseValidationError.value = "";
+  aiFeedback.value = "";
+  guidedHintsVisible.value = guidedExercisePrompts.value.map(() => false);
+  guidedCheckResults.value = guidedExercisePrompts.value.map(() => "");
+  guidedCheckLoading.value = guidedExercisePrompts.value.map(() => false);
 }
 
 function requestOutputFollowUpQuestion() {
   phaseValidationError.value = "";
   const baseAnswer = lessonResponses.output_speaking.trim();
   if (baseAnswer.length < 20) {
-    phaseValidationError.value =
-      t("followupNeedBase");
+    phaseValidationError.value = t("followupNeedBase");
     return;
   }
   const topic =
@@ -2092,20 +2368,22 @@ function requestOutputFollowUpQuestion() {
   if (settingsTtsEnabled.value) {
     speakText(outputFollowUpQuestion.value, ttsLangCode.value);
   }
+  aiFeedback.value = "";
+  fetchAiSpeakingFeedback();
 }
 
 function handleOutputSpeechResult(transcript) {
-  const t = String(transcript || "").trim();
-  if (!t) return;
+  const text = String(transcript || "").trim();
+  if (!text) return;
   outputUsedSpeech.value = true;
-  lessonResponses.output_speaking += (lessonResponses.output_speaking ? " " : "") + t;
+  lessonResponses.output_speaking += (lessonResponses.output_speaking ? " " : "") + text;
 }
 
 function handleOutputFollowUpSpeechResult(transcript) {
-  const t = String(transcript || "").trim();
-  if (!t) return;
+  const text = String(transcript || "").trim();
+  if (!text) return;
   outputFollowUpUsedSpeech.value = true;
-  outputFollowUpAnswer.value += (outputFollowUpAnswer.value ? " " : "") + t;
+  outputFollowUpAnswer.value += (outputFollowUpAnswer.value ? " " : "") + text;
 }
 
 function validatePhaseInputs(phaseName) {
@@ -2163,6 +2441,7 @@ async function openLesson(lesson) {
     activeLessonIndex.value = lesson.index;
     activePhaseIndex.value = 0;
     resetLessonInputs();
+    phaseStartTime.value = Date.now();
     lessonPlayerOpen.value = true;
     return;
   }
@@ -2181,7 +2460,9 @@ async function openLesson(lesson) {
     const lastPhase = Number(startPayload.last_phase || 0);
     activePhaseIndex.value = Math.max(0, Math.min(4, lastPhase));
     resetLessonInputs();
+    phaseStartTime.value = Date.now();
     lessonPlayerOpen.value = true;
+    updateLastPractice();
   } catch (err) {
     error.value = err instanceof Error ? err.message : String(err);
   } finally {
@@ -2218,12 +2499,18 @@ async function nextLessonPhase() {
     if (phase.phase === "warm_up") {
       phasePayload = { answers: [...lessonResponses.warm_up], questions: [...warmupQuestions.value] };
     } else if (phase.phase === "input") {
+      const learnedItems = inputVocabularyItems.value.filter(
+        (_, idx) => Boolean(lessonResponses.input_vocab_checks[idx]),
+      );
+      const unknownItems = inputVocabularyItems.value.filter(
+        (_, idx) => !lessonResponses.input_vocab_checks[idx],
+      );
+      saveUnknownVocab(unknownItems);
+      removeLearnedVocab(learnedItems.map((i) => i.term));
       phasePayload = {
         check_answer: lessonResponses.input_check,
         vocab_terms: inputVocabularyItems.value.map((item) => item.term),
-        learned_terms: inputVocabularyItems.value
-          .filter((_, idx) => Boolean(lessonResponses.input_vocab_checks[idx]))
-          .map((item) => item.term),
+        learned_terms: learnedItems.map((item) => item.term),
       };
     } else if (phase.phase === "guided_practice") {
       phasePayload = {
@@ -2254,7 +2541,7 @@ async function nextLessonPhase() {
       score: Math.max(60, accuracyPercent.value - 5),
       hints_used: 0,
       retries: 0,
-      duration_seconds: Number(phase.duration_minutes || 10) * 60,
+      duration_seconds: Math.round((Date.now() - phaseStartTime.value) / 1000),
     });
     if (activePhaseIndex.value < lessonOutlineForSession.value.length - 1) {
       activePhaseIndex.value += 1;
@@ -2263,6 +2550,7 @@ async function nextLessonPhase() {
     await completeLesson();
   } catch (err) {
     error.value = err instanceof Error ? err.message : String(err);
+    retryFn.value = nextLessonPhase;
   } finally {
     lessonNetworkBusy.value = false;
   }
@@ -2322,10 +2610,15 @@ function speakText(text, langCode) {
   utterance.lang = langCode || ttsLangCode.value;
   utterance.rate = Math.max(0.5, Math.min(2, settingsPlaybackRate.value / 150));
   utterance.volume = 1.0;
+  let voice = null;
   if (selectedVoiceURI.value) {
-    const voice = availableVoices.value.find((v) => v.voiceURI === selectedVoiceURI.value);
-    if (voice) utterance.voice = voice;
+    voice = availableVoices.value.find((v) => v.voiceURI === selectedVoiceURI.value) || null;
   }
+  if (!voice) {
+    voice = pickBestVoiceForLang(utterance.lang);
+    if (voice) selectedVoiceURI.value = voice.voiceURI;
+  }
+  if (voice) utterance.voice = voice;
   window.speechSynthesis.speak(utterance);
 }
 
@@ -2341,8 +2634,8 @@ function startStt(onResult) {
     sttActive.value = false;
     return;
   }
-  const defaultHandler = (t) => {
-    lessonResponses.output_speaking += (lessonResponses.output_speaking ? " " : "") + t;
+  const defaultHandler = (text) => {
+    lessonResponses.output_speaking += (lessonResponses.output_speaking ? " " : "") + text;
   };
   const handler = typeof onResult === "function" ? onResult : defaultHandler;
   sttRecognizer = new SpeechRec();
@@ -2351,7 +2644,12 @@ function startStt(onResult) {
   sttRecognizer.interimResults = false;
   sttActive.value = true;
   sttRecognizer.onresult = (event) => {
-    const transcript = Array.from(event.results).map((r) => r[0].transcript).join(" ");
+    const results = Array.from(event.results);
+    const transcript = results.map((r) => r[0].transcript).join(" ");
+    const totalConf = results.reduce((sum, r) => sum + (r[0].confidence || 0), 0);
+    sttConfidence.value = results.length
+      ? Math.round((totalConf / results.length) * 100)
+      : 0;
     handler(transcript);
   };
   sttRecognizer.onend = () => { sttActive.value = false; };
@@ -2361,27 +2659,45 @@ function startStt(onResult) {
 
 async function submitPipeline() {
   loading.value = true;
+  pipelineLoadingStep.value = 0;
   error.value = "";
   result.value = null;
   step.value = 6;
+  const stepTimer = setInterval(() => {
+    if (pipelineLoadingStep.value < pipelineLoadingSteps.length - 1) {
+      pipelineLoadingStep.value += 1;
+    }
+  }, 4000);
   try {
+    // Get a real user_id + session_id from the backend
+    const loginResp = await guestLogin(
+      apiBase.value,
+      userName.value.trim() || "Learner",
+    );
+    form.user_id = String(loginResp.user_id || form.user_id);
+    form.session_id = String(loginResp.session_id || form.session_id);
+    displayName.value = String(loginResp.display_name || userName.value || "Learner");
+
     const pipelineData = await runPipeline(apiBase.value, {
         ...form,
         user_input:
         `I already speak ${currentSpeakingLanguage.value} and I want to learn ${currentLearningLanguage.value}. I have finished the 4 questions. Please give me my first personalized tutoring step.`,
         speak_language: currentSpeakingLanguage.value,
         learn_language: currentLearningLanguage.value,
-        lessons_per_week: 2,
+        lessons_per_week: lessonsPerWeek.value,
     });
     result.value = pipelineData;
     completedWeekNumbers.value = [];
+    saveSession();
     await loadDashboardFromApi();
     step.value = 5;
     navigateTo("/dashboard");
   } catch (err) {
     error.value = err instanceof Error ? err.message : String(err);
+    retryFn.value = submitPipeline;
     step.value = 4;
   } finally {
+    clearInterval(stepTimer);
     loading.value = false;
   }
 }
@@ -2389,17 +2705,76 @@ async function submitPipeline() {
 function loadVoices() {
   const voices = window.speechSynthesis?.getVoices() || [];
   availableVoices.value = voices;
-  if (!selectedVoiceURI.value) {
-    const prefix = ttsLangCode.value.split("-")[0];
-    const match = voices.find((v) => v.lang.startsWith(prefix));
-    if (match) selectedVoiceURI.value = match.voiceURI;
-  }
+  const stillAvailable = voices.some((v) => v.voiceURI === selectedVoiceURI.value);
+  if (stillAvailable) return;
+  const preferred = pickBestVoiceForLang(ttsLangCode.value);
+  if (preferred) selectedVoiceURI.value = preferred.voiceURI;
+}
+
+function scoreVoiceForQuality(voice) {
+  const n = `${voice.name || ""} ${voice.voiceURI || ""}`.toLowerCase();
+  let score = 0;
+  if (voice.localService) score += 4;
+  if (n.includes("siri")) score += 14;
+  if (n.includes("google")) score += 12;
+  if (n.includes("microsoft")) score += 10;
+  if (n.includes("neural")) score += 12;
+  if (n.includes("natural")) score += 8;
+  if (n.includes("enhanced")) score += 8;
+  if (n.includes("premium")) score += 8;
+  if (n.includes("high quality")) score += 8;
+  if (n.includes("compact")) score -= 6;
+  if (n.includes("novelty")) score -= 8;
+  if (n.includes("whisper")) score -= 3;
+  return score;
+}
+
+function pickBestVoiceForLang(langCode) {
+  const voices = availableVoices.value || [];
+  if (!voices.length) return null;
+  const exact = voices.filter((v) => v.lang === langCode);
+  const prefix = String(langCode || "en-US").split("-")[0];
+  const byPrefix = voices.filter((v) => v.lang.startsWith(prefix));
+  const candidates = exact.length ? exact : byPrefix.length ? byPrefix : voices;
+  if (!candidates.length) return null;
+  const hints = ttsDefaultVoiceHintsByLang[prefix] || [];
+  const withPreference = [...candidates].sort((a, b) => {
+    const aName = `${a.name || ""} ${a.voiceURI || ""}`.toLowerCase();
+    const bName = `${b.name || ""} ${b.voiceURI || ""}`.toLowerCase();
+    const aPref = hints.some((hint) => aName.includes(hint)) ? 1 : 0;
+    const bPref = hints.some((hint) => bName.includes(hint)) ? 1 : 0;
+    if (aPref !== bPref) return bPref - aPref;
+    return scoreVoiceForQuality(b) - scoreVoiceForQuality(a);
+  });
+  return withPreference[0] || null;
 }
 
 onMounted(() => {
   window.addEventListener("popstate", handlePopState);
+
+  // Restore zero-start session from localStorage
+  try {
+    const saved = localStorage.getItem("vlot_zero_start");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      result.value = parsed.result;
+      displayName.value = parsed.displayName || "Learner";
+      if (parsed.speakCode) selectedSpeakCode.value = parsed.speakCode;
+      if (parsed.learnCode) selectedLearnCode.value = parsed.learnCode;
+      isZeroStartMode.value = true;
+      step.value = 5;
+      if (currentPath.value !== "/dashboard") navigateTo("/dashboard");
+    } else {
+      loadSession();
+    }
+  } catch {
+    loadSession();
+  }
+
+  checkPracticeReminder();
+  loadStreak();
   normalizeRoute();
-  if (currentPath.value === "/dashboard") {
+  if (currentPath.value === "/dashboard" && !isZeroStartMode.value) {
     loadDashboardFromApi();
   }
   if ("speechSynthesis" in window) {
@@ -2414,10 +2789,8 @@ onBeforeUnmount(() => {
 });
 
 watch(ttsLangCode, () => {
-  selectedVoiceURI.value = "";
-  const prefix = ttsLangCode.value.split("-")[0];
-  const match = availableVoices.value.find((v) => v.lang.startsWith(prefix));
-  if (match) selectedVoiceURI.value = match.voiceURI;
+  const preferred = pickBestVoiceForLang(ttsLangCode.value);
+  selectedVoiceURI.value = preferred ? preferred.voiceURI : "";
 });
 
 watch(currentPath, () => {
@@ -2426,12 +2799,16 @@ watch(currentPath, () => {
     loadDashboardFromApi();
   }
 });
+
+watch(activePhaseIndex, () => {
+  phaseStartTime.value = Date.now();
+});
 </script>
 
 <template>
   <main class="app-shell">
     <header v-if="!showDashboard" class="top-nav">
-      <div class="brand">LinguaCoach Elite</div>
+      <div class="brand">Vlot</div>
       <nav class="nav-links">
         <a href="/" @click.prevent="navigateTo('/')">{{ t("navHowItWorks") }}</a>
         <a href="/" @click.prevent="navigateTo('/')">{{ t("navFeatures") }}</a>
@@ -2603,6 +2980,27 @@ watch(currentPath, () => {
           <p>
             {{ t("onboardingDesc") }}
           </p>
+          <div class="onboarding-name-row">
+            <label class="onboarding-name-label">Your name (optional)</label>
+            <input
+              v-model="userName"
+              class="onboarding-name-input"
+              placeholder="e.g. Sofia"
+              maxlength="40"
+            />
+          </div>
+          <div class="onboarding-lpw-row">
+            <label class="onboarding-name-label">Lessons per week</label>
+            <div class="lpw-options">
+              <button
+                v-for="n in [2, 3]"
+                :key="n"
+                class="lpw-btn"
+                :class="{ selected: lessonsPerWeek === n }"
+                @click="lessonsPerWeek = n"
+              >{{ n }}×</button>
+            </div>
+          </div>
           <div class="onboarding-choice-actions">
             <button @click="startFromZero">{{ t("startZero") }}</button>
             <button class="secondary" @click="startFlow">
@@ -2618,12 +3016,8 @@ watch(currentPath, () => {
       v-else-if="showAssessmentRoute || showDashboard"
       :class="['workflow', { 'workflow-dashboard': showDashboard }]"
     >
-      <div v-if="!inAssessment" class="header">
+      <div v-if="!inAssessment && !showDashboard" class="header">
         <h2>{{ t("appTitle") }}</h2>
-        <p>
-          Personal language coach with Bot 1 -> Bot 2 -> Bot 3 for
-          {{ currentLearningLanguage }}
-        </p>
       </div>
 
       <section v-if="!inAssessment && !showDashboard" class="card settings">
@@ -2665,7 +3059,7 @@ watch(currentPath, () => {
             </div>
             <div v-if="message.role === 'user'" class="avatar user-avatar">{{ t("youLabel") }}</div>
           </article>
-          <p class="chat-meta">{{ assessmentMessages.at(-1)?.meta || "LINGUACOACH AI" }}</p>
+          <p class="chat-meta">{{ assessmentMessages.at(-1)?.meta || "VLOT AI" }}</p>
         </div>
 
         <div class="assessment-composer">
@@ -2696,14 +3090,29 @@ watch(currentPath, () => {
 
     <section v-else-if="step === 6" class="card loading-card">
       <div class="spinner" aria-hidden="true"></div>
-        <h2>{{ t("loadingPlan") }}</h2>
-      <p>
-      </p>
+      <h2>{{ t("loadingPlan") }}</h2>
+      <ol class="pipeline-steps">
+        <li
+          v-for="(label, i) in pipelineLoadingSteps"
+          :key="i"
+          class="pipeline-step"
+          :class="{
+            'step-done':   i < pipelineLoadingStep,
+            'step-active': i === pipelineLoadingStep,
+            'step-pending': i > pipelineLoadingStep,
+          }"
+        >
+          <span class="step-icon">
+            {{ i < pipelineLoadingStep ? '✓' : i === pipelineLoadingStep ? '⟳' : '○' }}
+          </span>
+          {{ label }}
+        </li>
+      </ol>
     </section>
 
       <section v-else-if="showDashboard && result && step !== 6" class="dashboard-layout">
         <aside class="dashboard-sidebar">
-          <div class="sidebar-brand">LinguaCoach</div>
+          <div class="sidebar-brand">Vlot</div>
           <div class="learner-card">
             <div class="learner-avatar">👩‍🎓</div>
             <div>
@@ -2729,7 +3138,7 @@ watch(currentPath, () => {
         <div class="dashboard-main">
           <header class="dashboard-header">
             <div>
-              <h1>{{ t("welcomeBack") }} {{ form.user_id || "Learner" }} 👋</h1>
+              <h1>{{ t("welcomeBack") }} {{ displayName || "Learner" }} 👋</h1>
               <p>{{ t("readyDaily") }}</p>
       </div>
             <div class="dashboard-header-badges">
@@ -2742,7 +3151,7 @@ watch(currentPath, () => {
             <section class="weekly-plan card-lite">
               <div class="weekly-plan-header">
                 <h2>{{ t("plan12w") }}</h2>
-                <a href="#">{{ t("viewCalendar") }}</a>
+                <button class="link-button" @click="dashboardTab = 'plan'">{{ t("viewCalendar") }}</button>
       </div>
 
               <article
@@ -2808,11 +3217,18 @@ watch(currentPath, () => {
               <section class="card-lite achievement-card">
                 <h4>{{ t("reviewDueTodayTitle") }}</h4>
                 <p v-if="!reviewDueToday.length">{{ t("noDueReviews") }}</p>
-                <ul v-else class="review-due-list">
-                  <li v-for="item in reviewDueToday" :key="item.id">
-                    {{ item.topic }} (from week {{ item.source_week }})
-                  </li>
-                </ul>
+                <template v-else>
+                  <ul class="review-due-list">
+                    <li v-for="item in reviewDueToday" :key="item.id">
+                      {{ item.topic }} (from week {{ item.source_week }})
+                    </li>
+                  </ul>
+                  <button
+                    class="small-cta"
+                    style="margin-top:10px;width:100%"
+                    @click="reviewSessionOpen = true; activeReviewIndex = 0"
+                  >Start review session ({{ reviewDueToday.length }} topics)</button>
+                </template>
               </section>
             </aside>
           </div>
@@ -2880,6 +3296,26 @@ watch(currentPath, () => {
               <div class="plan-meta-card">
                 <small>{{ t("reviewsDue") }}</small>
                 <strong>{{ reviewDueToday.length }}</strong>
+              </div>
+              <div v-if="dashboardMetrics?.total_minutes_practiced" class="plan-meta-card">
+                <small>Time practiced</small>
+                <strong>{{ dashboardMetrics.total_minutes_practiced }} min</strong>
+              </div>
+            </div>
+            <div v-if="dashboardMetrics?.phase_scores && Object.keys(dashboardMetrics.phase_scores).length" class="phase-scores-section">
+              <h3 class="progress-section-title">Phase accuracy</h3>
+              <div class="phase-scores-grid">
+                <div
+                  v-for="(score, phase) in dashboardMetrics.phase_scores"
+                  :key="phase"
+                  class="phase-score-card"
+                >
+                  <small>{{ String(phase).replaceAll('_', ' ') }}</small>
+                  <strong>{{ score }}%</strong>
+                  <div class="phase-score-bar">
+                    <div class="phase-score-fill" :style="{ width: score + '%' }"></div>
+                  </div>
+                </div>
               </div>
             </div>
             <h3 class="progress-section-title">{{ t("skillBreakdown") }}</h3>
@@ -2977,6 +3413,24 @@ watch(currentPath, () => {
               </button>
             </div>
             <div class="settings-section">
+              <h3 class="settings-section-title">Notifications</h3>
+              <div class="settings-row">
+                <div>
+                  <strong>Practice reminders</strong>
+                  <small>Get a reminder after 24 hours without practice</small>
+                </div>
+                <button
+                  v-if="notificationsPermission !== 'granted'"
+                  class="secondary"
+                  @click="requestNotificationPermission"
+                  :disabled="notificationsPermission === 'denied'"
+                >
+                  {{ notificationsPermission === 'denied' ? 'Blocked by browser' : 'Enable' }}
+                </button>
+                <span v-else class="settings-badge-on">✓ On</span>
+              </div>
+            </div>
+            <div class="settings-section">
               <h3 class="settings-section-title">{{ t("settingsSession") }}</h3>
               <div class="settings-row">
                 <div>
@@ -2997,7 +3451,7 @@ watch(currentPath, () => {
           >
             <div class="lesson-player-modal lesson-studio">
               <aside class="lesson-studio-sidebar">
-                <div class="lesson-studio-brand">LinguaCoach</div>
+                <div class="lesson-studio-brand">Vlot</div>
                 <div class="lesson-studio-profile">
                   <div class="learner-avatar">👩‍🎓</div>
                   <div>
@@ -3244,8 +3698,17 @@ watch(currentPath, () => {
                   </p>
                   <article class="exercise-card" v-for="(task, idx) in guidedExercisePrompts" :key="`gp-${idx}`">
                     <h4>Exercise {{ idx + 1 }}</h4>
-                    <p>{{ task.prompt }}</p>
-                    <p v-if="task.sentence_with_blank" class="guided-blank">{{ task.sentence_with_blank }}</p>
+                    <p v-if="task.prompt">{{ task.prompt }}</p>
+                    <p v-if="!task.prompt && task.sentence_with_blank" class="guided-blank">{{ task.sentence_with_blank }}</p>
+                    <p
+                      v-else-if="
+                        task.sentence_with_blank &&
+                        task.sentence_with_blank.trim() &&
+                        task.prompt &&
+                        task.sentence_with_blank.trim() !== task.prompt.trim()
+                      "
+                      class="guided-blank"
+                    >{{ task.sentence_with_blank }}</p>
                     <input
                       v-model="lessonResponses.guided_practice[idx]"
                       :placeholder="`Your answer in ${currentLearningLanguage}`"
@@ -3281,10 +3744,27 @@ watch(currentPath, () => {
                       >
                         {{ sttActive ? '🔴 Listening… (click to stop)' : '🎤 Speak your answer' }}
                       </button>
+                      <div v-if="sttConfidence > 0" class="confidence-bar">
+                        <span class="confidence-label">Pronunciation clarity: {{ sttConfidence }}%</span>
+                        <div class="confidence-track">
+                          <div
+                            class="confidence-fill"
+                            :style="{
+                              width: sttConfidence + '%',
+                              background: sttConfidence >= 70 ? '#0b7a6f' : sttConfidence >= 40 ? '#f59e0b' : '#ef4444',
+                            }"
+                          ></div>
+                        </div>
+                      </div>
                     </div>
                     <p v-if="outputPrimaryFeedback" class="assessment-tip" style="margin-top: 10px">
                       Coach feedback: {{ outputPrimaryFeedback }}
                     </p>
+                    <div v-if="aiFeedback || aiFeedbackLoading" class="ai-feedback-block">
+                      <span class="ai-feedback-label">🤖 AI Coach</span>
+                      <p v-if="aiFeedbackLoading" class="ai-feedback-text">Analysing your answer…</p>
+                      <p v-else class="ai-feedback-text">{{ aiFeedback }}</p>
+                    </div>
                     <button
                       type="button"
                       class="send-btn"
@@ -3341,6 +3821,7 @@ watch(currentPath, () => {
                           <strong>{{ t("insteadOf") }}</strong> {{ item.before }}<br />
                           <strong>{{ t("tryLabel") }}</strong> {{ item.correction }}<br />
                           <small>{{ item.note }}</small>
+                          <p v-if="item.why" class="grammar-why">💡 {{ item.why }}</p>
                         </li>
                       </ul>
                     </div>
@@ -3366,6 +3847,49 @@ watch(currentPath, () => {
               <button :disabled="lessonNetworkBusy" @click="nextLessonPhase">
                 {{ activePhaseIndex === 4 ? t("finishLesson") : t("continueNextPhase") }}
               </button>
+            </div>
+          </div>
+
+          <!-- Review session modal -->
+          <div
+            v-if="reviewSessionOpen && reviewDueToday.length"
+            class="session-modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Review session"
+          >
+            <div class="session-modal">
+              <div class="session-check" style="background:#0b7a6f">📚</div>
+              <h2>Review Session</h2>
+              <p style="color:#64748b;margin-bottom:16px">
+                Topic {{ activeReviewIndex + 1 }} of {{ reviewDueToday.length }}
+              </p>
+              <div class="review-topic-card">
+                <p class="review-topic-label">Recall this topic in {{ currentLearningLanguage }}:</p>
+                <h3 class="review-topic-text">{{ reviewDueToday[activeReviewIndex]?.topic }}</h3>
+                <p style="color:#64748b;font-size:13px">
+                  Originally practiced in week {{ reviewDueToday[activeReviewIndex]?.source_week }}
+                </p>
+              </div>
+              <div class="lesson-input-block" style="margin-top:14px">
+                <textarea
+                  :placeholder="`Write 1-2 sentences about this topic in ${currentLearningLanguage}…`"
+                  rows="3"
+                  style="width:100%;box-sizing:border-box"
+                />
+              </div>
+              <div style="display:flex;gap:10px;margin-top:14px">
+                <button
+                  class="secondary"
+                  style="flex:1"
+                  @click="reviewSessionOpen = false"
+                >Close</button>
+                <button
+                  style="flex:1"
+                  :disabled="activeReviewIndex >= reviewDueToday.length - 1"
+                  @click="activeReviewIndex = Math.min(activeReviewIndex + 1, reviewDueToday.length - 1)"
+                >Next topic →</button>
+              </div>
             </div>
           </div>
 
@@ -3403,7 +3927,7 @@ watch(currentPath, () => {
               </div>
 
               <button class="session-primary" @click="closeSessionCompleteModal">{{ t("nextLesson") }}</button>
-              <button class="session-secondary" @click="closeSessionCompleteModal">{{ t("reviewMistakes") }}</button>
+              <button class="session-secondary" @click="() => { closeSessionCompleteModal(); dashboardTab = 'progress'; }">{{ t("reviewMistakes") }}</button>
             </div>
           </div>
         </div>
@@ -3416,7 +3940,7 @@ watch(currentPath, () => {
     </section>
 
     <footer v-if="!showDashboard" class="footer">
-      <div class="footer-brand">LinguaCoach Elite</div>
+      <div class="footer-brand">Vlot</div>
       <div class="footer-links">
         <a href="#">{{ t("privacyPolicy") }}</a>
         <a href="#">{{ t("termsOfService") }}</a>

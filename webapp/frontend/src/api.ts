@@ -1,3 +1,35 @@
+export async function guestLogin(
+  apiBase: string,
+  displayName: string,
+): Promise<JsonRecord> {
+  const response = await fetch(`${apiBase}/api/auth/guest-login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ display_name: displayName }),
+  });
+  return parseJson<JsonRecord>(response);
+}
+
+export async function tutorChat(
+  apiBase: string,
+  payload: {
+    user_id: string;
+    session_id: string;
+    user_message: string;
+    lesson_id?: string;
+    conversation: JsonRecord[];
+    memory: JsonRecord;
+    exercise_history: JsonRecord[];
+  },
+): Promise<JsonRecord> {
+  const response = await fetch(`${apiBase}/api/tutor/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return parseJson<JsonRecord>(response);
+}
+
 export type PipelinePayload = {
   user_id: string;
   session_id: string;

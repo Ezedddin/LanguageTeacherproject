@@ -153,6 +153,11 @@ Requirements:
 - Output phase: include a realistic scenario prompt.
 - Avoid repeating the same vocabulary across lessons.
 - Keep content practical and CEFR-appropriate.
+- Strong pedagogy constraint: prioritize sentence-building over isolated word drills.
+- Vocabulary style: use beginner-friendly words (early classroom / daycare level) in the first lessons.
+- Every guided task must require producing or completing a full short sentence.
+- Example sentences must be very short, clear, and usable in daily life.
+- Prefer high-frequency foundations first: greetings, family, colors, numbers, classroom objects, food, emotions, routines.
 """.strip()
 
     def _normalize_payload(
@@ -211,8 +216,8 @@ Requirements:
             return {
                 "prompt": text,
                 "sentence_with_blank": text,
-                "expected_answer": "Provide a correct response.",
-                "hint": "Use the lesson vocabulary and grammar focus.",
+                "expected_answer": "Write one short beginner sentence in the target language.",
+                "hint": "Use one of the 5 lesson words inside a full sentence.",
             }
         if not isinstance(task, dict):
             raise ValueError("Guided task must be an object.")
@@ -254,8 +259,10 @@ Requirements:
         hint = self._text_or_empty(task.get("hint") or task.get("clue") or task.get("support"))
         if not prompt or not sentence or not expected:
             raise ValueError(f"Guided task missing required meaning-bearing fields: {task}")
+        if expected.lower() in {"provide a correct response.", "correct response", "correct answer"}:
+            expected = "Write one short beginner sentence in the target language."
         if not hint:
-            hint = "Use the lesson vocabulary and grammar focus."
+            hint = "Use one of the 5 lesson words and answer with a short complete sentence."
         return {
             "prompt": prompt,
             "sentence_with_blank": sentence,
@@ -292,9 +299,12 @@ Requirements:
     def _extract_json_text(self, raw: str) -> str:
         text = raw.strip()
         if text.startswith("```"):
-            text = text.strip("`")
-            if text.startswith("json"):
-                text = text[4:].strip()
+            text = text[3:]
+            newline = text.find("\n")
+            if newline != -1:
+                text = text[newline:].strip()
+            if text.endswith("```"):
+                text = text[:-3].strip()
         return text
 
     def _build_retry_prompt(self, prompt: str, error_message: str) -> str:

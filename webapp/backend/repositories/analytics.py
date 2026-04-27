@@ -63,10 +63,35 @@ def summarize_metrics(
     total = int(row["total_lessons"] or 0)
     completed = int(row["completed_lessons"] or 0)
     completion_rate = round((completed / total) * 100, 1) if total else 0.0
+
+    duration_row = conn.execute(
+        """
+        SELECT
+            COALESCE(SUM(duration_seconds), 0) AS total_seconds,
+            COUNT(DISTINCT phase) AS phases_practiced
+        FROM lesson_attempts
+        WHERE user_id = ? AND session_id = ?
+        """,
+        (user_id, session_id),
+    ).fetchone()
+
+    phase_rows = conn.execute(
+        """
+        SELECT phase, COALESCE(AVG(score), 0) AS avg_score
+        FROM lesson_attempts
+        WHERE user_id = ? AND session_id = ?
+        GROUP BY phase
+        """,
+        (user_id, session_id),
+    ).fetchall()
+    phase_scores = {r["phase"]: round(float(r["avg_score"]), 1) for r in phase_rows}
+
     return {
         "total_lessons": total,
         "completed_lessons": completed,
         "completion_rate": completion_rate,
         "avg_accuracy": round(float(row["avg_accuracy"] or 0), 1),
         "total_xp": int(row["total_xp"] or 0),
+        "total_minutes_practiced": int(int(duration_row["total_seconds"] or 0) / 60),
+        "phase_scores": phase_scores,
     }

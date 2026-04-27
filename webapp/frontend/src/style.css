@@ -2403,3 +2403,213 @@ button[disabled] {
   margin-top: 4px;
   font-size: 12px;
 }
+
+/* ── Onboarding: name + lessons-per-week ──────────────────────────────── */
+.onboarding-name-row,
+.onboarding-lpw-row {
+  margin-top: 14px;
+  text-align: left;
+}
+.onboarding-name-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.onboarding-name-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #0f172a;
+  background: #f8fafc;
+}
+.onboarding-name-input:focus {
+  outline: none;
+  border-color: #0b7a6f;
+}
+.lpw-options {
+  display: flex;
+  gap: 8px;
+}
+.lpw-btn {
+  flex: 1;
+  padding: 8px 0;
+  border: 2px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.lpw-btn.selected {
+  border-color: #0b7a6f;
+  background: #0b7a6f;
+  color: #fff;
+}
+
+/* ── AI feedback block (speaking phase) ─────────────────────────────────── */
+.ai-feedback-block {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: #f0fdf9;
+  border: 1px solid #a7f3d0;
+  border-radius: 10px;
+}
+.ai-feedback-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0b7a6f;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.ai-feedback-text {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #1e3a31;
+  line-height: 1.5;
+}
+
+/* ── Review session modal ───────────────────────────────────────────────── */
+.review-topic-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: left;
+}
+.review-topic-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 8px;
+}
+.review-topic-text {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 6px;
+}
+
+/* ── Multi-step pipeline loader ─────────────────────────────────────────── */
+.pipeline-steps {
+  list-style: none;
+  padding: 0;
+  margin: 20px auto 0;
+  max-width: 320px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pipeline-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #94a3b8;
+  transition: color 0.3s;
+}
+.pipeline-step.step-done  { color: #0b7a6f; }
+.pipeline-step.step-active { color: #0f172a; font-weight: 600; }
+.step-icon {
+  width: 20px;
+  text-align: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.step-active .step-icon { animation: spin 1s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── STT confidence bar ──────────────────────────────────────────────────── */
+.confidence-bar {
+  margin-top: 8px;
+}
+.confidence-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+.confidence-track {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+.confidence-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease, background 0.4s ease;
+}
+
+/* ── Grammar explanation ─────────────────────────────────────────────────── */
+.grammar-why {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #475569;
+  background: #f1f5f9;
+  border-left: 3px solid #0b7a6f;
+  padding: 5px 8px;
+  border-radius: 0 6px 6px 0;
+}
+
+/* ── Phase accuracy breakdown ───────────────────────────────────────────── */
+.phase-scores-section {
+  margin-top: 24px;
+}
+.phase-scores-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.phase-score-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+}
+.phase-score-card small {
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: block;
+  margin-bottom: 4px;
+}
+.phase-score-card strong {
+  font-size: 22px;
+  color: #0f172a;
+}
+.phase-score-bar {
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+.phase-score-fill {
+  height: 100%;
+  background: #0b7a6f;
+  border-radius: 3px;
+}
+
+/* ── Notification settings badge ────────────────────────────────────────── */
+.settings-badge-on {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0b7a6f;
+  background: #d1fae5;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
